@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL || '/api';
-
-const api = axios.create({ baseURL });
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'https://aivorachatbackend.vercel.app/api'
+});
 
 api.interceptors.response.use(
   res => res,
