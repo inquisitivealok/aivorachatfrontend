@@ -375,7 +375,7 @@ export default function Schedule() {
                         className="flex items-center gap-2 mx-auto px-8 py-3 bg-gradient-to-r from-violet-600 to-purple-600
                           hover:from-violet-500 hover:to-purple-500 text-white rounded-xl font-medium transition-all
                           disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-violet-500/20">
-                        <Play size={16} fill="white" /> Start Session
+                        <Play size={16} fill="white" /> Start Learning
                       </button>
                       {activeSession && activeSession !== selected._id && (
                         <p className="text-xs text-amber-400">Another session is already running</p>

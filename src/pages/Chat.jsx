@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Send, Trash2, Bot, User, Loader, CheckCircle, Clock, ArrowLeft } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTheme } from '../context/ThemeContext';
+import { useCamera } from '../context/CameraContext';
 import Navbar from '../components/Navbar';
 import api from '../api';
 
@@ -24,8 +25,11 @@ function calcSecs(startTime, endTime) {
 // ── Message bubble ────────────────────────────────────────────────────────────
 function Message({ msg, isDark }) {
   const isUser = msg.role === 'user';
-  // render markdown-style bold (**text**) simply
-  const formatted = msg.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  const formatted = msg.content
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^(\d+\.\s)/gm, '<br/><strong>$1</strong>')
+    .replace(/^[-•]\s/gm, '<br/>• ')
+    .replace(/\n/g, '<br/>');
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''} animate-fade-in`}>
       <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center
@@ -49,6 +53,7 @@ function Message({ msg, isDark }) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function Chat() {
   const { isDark } = useTheme();
+  const { cameraEnabled, modelsLoaded, startCamera } = useCamera();
   const location = useLocation();
   const navigate = useNavigate();
   const session = location.state?.session || null;
@@ -66,7 +71,7 @@ export default function Chat() {
   const [currentTopicIdx, setCurrentTopicIdx] = useState(0);
   const [currentSubtopicIdx, setCurrentSubtopicIdx] = useState(0);
   const [learningStage, setLearningStage] = useState('roadmap'); // roadmap | teaching | completed
-  const [learningReady, setLearningReady] = useState(!session || !startLearning);
+  const [learningReady, setLearningReady] = useState(!(session && startLearning));
   const [waitingDone, setWaitingDone] = useState(false); // waiting for student to say done
 
   const timerRef = useRef(null);
@@ -98,22 +103,18 @@ export default function Chat() {
   }, []);
 
   useEffect(() => {
-    if (!session || !startLearning || initDoneRef.current || fetching) return;
+    if (!session || !startLearning || initDoneRef.current) return;
     initDoneRef.current = true;
+    api.delete('/chat/history')
+      .catch(() => {})
+      .finally(() => { setMessages([]); setLearningReady(true); });
+  }, [session, startLearning]);
 
-    const initializeLearningSession = async () => {
-      try {
-        await api.delete('/chat/history');
-        setMessages([]);
-      } catch {
-        // Keep going even if history clear fails; roadmap flow can still run.
-      } finally {
-        setLearningReady(true);
-      }
-    };
-
-    initializeLearningSession();
-  }, [session, startLearning, fetching]);
+  // Auto-enable camera when learning starts from schedule
+  useEffect(() => {
+    if (!session || !startLearning || cameraEnabled || !modelsLoaded) return;
+    startCamera().catch(() => {});
+  }, [session, startLearning, cameraEnabled, modelsLoaded, startCamera]);
 
   // countdown timer
   useEffect(() => {
@@ -126,17 +127,28 @@ export default function Chat() {
     return () => clearInterval(timerRef.current);
   }, [sessionActive]);
 
-  // auto-send roadmap once session is ready
+  // auto-send roadmap once session is ready (no `loading` in deps to avoid re-trigger)
   useEffect(() => {
-    if (!session || autoSentRef.current || fetching || loading || !learningReady || (startLearning && !initDoneRef.current)) return;
+    if (!session || !startLearning || autoSentRef.current || fetching || !learningReady) return;
     autoSentRef.current = true;
-    const topics = session.topics?.length ? session.topics.join(', ') : session.title;
-    const prompt = `I am starting a focused study session for "${session.title}". Topics: ${topics}.
-Create a concise roadmap with numbered steps for this session. Do not teach any topic yet.
-After roadmap, ask me to reply with "done" to start the first subtopic lesson.`;
+    const topics = session.topics?.length ? session.topics.join(', ') : session.title || 'this session topic';
+    const prompt = `I am starting a focused study session for "${session.title}".
+Teach all these topics in detail right now: ${topics}.
+
+For each topic, include:
+1) clear concept explanation in simple language
+2) one practical example
+3) one quick practice question
+4) common mistakes to avoid
+
+After covering all topics, give me a short final recap and suggest what to study next.`;
+    setLearningStage('teaching');
+    setCurrentTopicIdx(0);
+    setCurrentSubtopicIdx(1);
+    setWaitingDone(false);
     sendAuto(prompt, {
       active: true,
-      stage: 'roadmap',
+      stage: 'teaching',
       sessionTitle: session.title,
       topic: session.topics?.[0] || session.title,
       topicNumber: 1,
@@ -144,9 +156,7 @@ After roadmap, ask me to reply with "done" to start the first subtopic lesson.`;
       subtopicNumber: 1,
       totalSubtopics: SUBTOPICS_PER_TOPIC
     });
-    setLearningStage('roadmap');
-    setWaitingDone(true);
-  }, [session, fetching, loading, startLearning, learningReady]);
+  }, [session, startLearning, fetching, learningReady]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });

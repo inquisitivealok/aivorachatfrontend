@@ -5,6 +5,7 @@ const isLocalhost = typeof window !== 'undefined'
 const configuredBaseUrl = import.meta.env.VITE_API_URL?.trim();
 const baseURL = isLocalhost
   ? '/api'
+  // : (configuredBaseUrl || 'http://localhost:5000/api');
   : (configuredBaseUrl || 'https://aivorachatbackend.vercel.app/api');
 
 const api = axios.create({
@@ -20,3 +21,7 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+
+
+
