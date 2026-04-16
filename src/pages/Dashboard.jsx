@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageSquare, Calendar, Activity, Clock, ChevronRight } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useCamera } from '../context/CameraContext';
 import Navbar from '../components/Navbar';
 import Layout from '../components/Layout';
-import CameraTracker from '../components/CameraTracker';
-import { useCameraTracker } from '../hooks/useCameraTracker';
 import api from '../api';
 
 const StatCard = ({ icon: Icon, label, value, color, isDark }) => (
@@ -25,9 +24,7 @@ export default function Dashboard() {
   const [schedules, setSchedules] = useState([]);
   const [time, setTime] = useState(new Date());
 
-  // Use camera tracker state directly — single source of truth
-  const cameraTracker = useCameraTracker();
-  const { isActive, cameraEnabled } = cameraTracker;
+  const { isActive, cameraEnabled } = useCamera();
 
   useEffect(() => {
     api.get('/schedule').then(r => setSchedules(r.data)).catch(() => {});
@@ -134,9 +131,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Camera Tracker — receives shared tracker instance */}
-          <CameraTracker tracker={cameraTracker} />
-
+          {/* Quick access cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link to="/chat" className={`p-6 rounded-2xl ${isDark ? 'glass hover:bg-white/10' : 'glass-light hover:bg-white/90'} transition-all duration-200 group`}>
               <div className="flex items-center gap-3 mb-3">

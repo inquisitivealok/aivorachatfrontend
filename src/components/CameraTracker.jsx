@@ -3,9 +3,11 @@ import { Camera, CameraOff, Loader, AlertTriangle, GripHorizontal, Minimize2, Ma
 import { toast } from 'react-hot-toast';
 import { useTheme } from '../context/ThemeContext';
 
-export default function CameraTracker({ tracker }) {
+import { useCamera } from '../context/CameraContext';
+
+export default function CameraTracker() {
   const { isDark } = useTheme();
-  const { videoRef, isActive, modelsLoaded, cameraError, cameraEnabled, startCamera, stopCamera } = tracker;
+  const { videoRef, isActive, modelsLoaded, cameraError, cameraEnabled, startCamera, stopCamera } = useCamera();
 
   const [minimized, setMinimized] = useState(false);
   const [pos, setPos] = useState({ x: window.innerWidth - 320, y: 80 });

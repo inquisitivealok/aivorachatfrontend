@@ -1,13 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './context/ThemeContext';
+import { CameraProvider } from './context/CameraContext';
 import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
 import Schedule from './pages/Schedule';
-import { useActivityTracker } from './hooks/useActivityTracker';
+import CameraTracker from './components/CameraTracker';
 
 function AppContent() {
-  useActivityTracker();
   return (
     <>
       <Toaster
@@ -23,6 +23,8 @@ function AppContent() {
           error: { iconTheme: { primary: '#f87171', secondary: '#fff' } },
         }}
       />
+      {/* Floating camera widget — visible on all pages */}
+      <CameraTracker />
       <Routes>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/chat" element={<Chat />} />
@@ -37,7 +39,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <ThemeProvider>
-        <AppContent />
+        <CameraProvider>
+          <AppContent />
+        </CameraProvider>
       </ThemeProvider>
     </BrowserRouter>
   );

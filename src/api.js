@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+const isLocalhost = typeof window !== 'undefined'
+  && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const configuredBaseUrl = import.meta.env.VITE_API_URL?.trim();
+const baseURL = isLocalhost
+  ? '/api'
+  : (configuredBaseUrl || 'https://aivorachatbackend.vercel.app/api');
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://aivorachatbackend.vercel.app/api'
+  baseURL
 });
 
 api.interceptors.response.use(
